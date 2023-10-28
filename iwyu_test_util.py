@@ -15,6 +15,7 @@
 __author__ = 'wan@google.com (Zhanyong Wan)'
 
 import difflib
+import functools
 import operator
 import os
 import re
@@ -73,11 +74,55 @@ class Features:
   # Parses the output of 'include-what-you-use -print-targets'.
   SUPPORTED_TARGET_RE = re.compile(r'^\s+([a-z0-9_-]+)\s* - .*$')
 
+  # Parses the output of 'include-what-you-use -dM -E'.
+  PREPROCESSOR_MACRO_RE = re.compile(r'^#define ([A-z_][A-z0-9_]*)')
+
   def __init__(self):
     # Maps all known features names to prerequisite predicates.
     self.known = {
-      'has-target': Features.HasTarget
+      'has-target': Features.HasTarget,
+      'using-cstdlib': Features.UsingCstdlib,
+      'using-cxxstdlib': Features.UsingCXXstdlib,
     }
+
+  @staticmethod
+  def _GetPreprocessorMacros(lang, header):
+    iwyu = _GetIwyuPath()
+    txt = f'#include {header}'
+
+    cmd = [iwyu, '-dM', '-E', '-x', lang]
+    # Take into account extra arguments specified in IWYU_EXTRA_ARGS -
+    # the user may be trying to test with different includes, standard
+    # libraries or whatever.
+    #
+    # For feature tests we _don't_ take into account test-specific
+    # IWYU_ARGS.
+    #  * the argument could be the thing that breaks things
+    #  * the feature result should not be test specific
+    env_iwyu_extra_args = os.getenv('IWYU_EXTRA_ARGS')
+    if env_iwyu_extra_args:
+      cmd += shlex.split(env_iwyu_extra_args)
+    cmd += ['-']
+
+    result = subprocess.run(cmd, capture_output=True, input=txt, text=True)
+
+    macros = []
+    for line in result.stdout.splitlines():
+      m = Features.PREPROCESSOR_MACRO_RE.match(line)
+      if m:
+        macros.append(m.group(1))
+
+    return macros
+
+  @staticmethod
+  @functools.cache
+  def _GetCXXPreprocessorMacros():
+    return Features._GetPreprocessorMacros('c++', '<cstddef>')
+
+  @staticmethod
+  @functools.cache
+  def _GetCPreprocessorMacros():
+    return Features._GetPreprocessorMacros('c', '<stddef.h>')
 
   @staticmethod
   def HasTarget(target):
@@ -92,6 +137,32 @@ class Features:
         supported.append(m.group(1))
     return target in supported
 
+  @staticmethod
+  def UsingCXXstdlib(lib):
+    id_macro = {
+      'libcxx' : '_LIBCPP_VERSION',
+      'libstdcxx' : '__GLIBCXX__',
+      'msvc' : '_MSVC_STL_UPDATE', # https://github.com/microsoft/STL/wiki/Macro-_MSVC_STL_UPDATE
+    }
+    if lib not in id_macro:
+      raise SyntaxError('Unknown C++ standard library: %s' % lib)
+
+    return id_macro[lib] in Features._GetCXXPreprocessorMacros()
+
+  @staticmethod
+  def UsingCstdlib(lib):
+    id_macro = {
+      'glibc' : '__GLIBC__',
+      'macos' : '__APPLE_CC__', # This identifies the Apple compiler rather than libc.
+      'msvc' : '_MSC_VER', # This identifies the MS compiler rather than libc.
+      'newlib' : '_NEWLIB_VERSION',
+      'uclibc' : '__UCLIBC__',
+    }
+    if lib not in id_macro:
+      raise SyntaxError('Unknown C standard library: %s' % lib)
+
+    # TODO: This needs refining to ensure it correctly identifies said libraries
+    return id_macro[lib] in Features._GetCPreprocessorMacros()
 
 _FEATURES = Features()
 
