@@ -15,6 +15,7 @@
 __author__ = 'wan@google.com (Zhanyong Wan)'
 
 import difflib
+import functools
 import operator
 import os
 import re
@@ -80,7 +81,8 @@ class Features:
     }
 
   @staticmethod
-  def HasTarget(target):
+  @functools.cache
+  def _SupportedTargets():
     iwyu = _GetIwyuPath()
     result = subprocess.run([iwyu, '-print-targets'],
                             capture_output=True,
@@ -90,7 +92,12 @@ class Features:
       m = Features.SUPPORTED_TARGET_RE.match(line)
       if m:
         supported.append(m.group(1))
-    return target in supported
+
+    return supported
+
+  @staticmethod
+  def HasTarget(target):
+    return target in Features._SupportedTargets()
 
 
 _FEATURES = Features()
