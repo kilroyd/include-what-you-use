@@ -146,7 +146,7 @@ def RunTestFile(cc_file):
 
 
 if __name__ == '__main__':
-  unittest_args, additional_args = Partition(sys.argv, '--')
+  runtest_args, additional_args = Partition(sys.argv, '--')
   if additional_args:
     iwyu_test_util.SetIwyuPath(additional_args[0])
 
@@ -155,7 +155,8 @@ if __name__ == '__main__':
   group.add_argument('--list', dest='list_tests', action='store_true')
   group.add_argument('--list-test-files', action='store_true')
   group.add_argument('--run-test-file')
-  (runner_args, _) = parser.parse_known_args(unittest_args)
+  parser.add_argument('--test-libc', action='store_true')
+  (runner_args, unittest_args) = parser.parse_known_args(runtest_args)
 
   if runner_args.run_test_file:
     exit(RunTestFile(runner_args.run_test_file))
@@ -168,6 +169,10 @@ if __name__ == '__main__':
 
   @GenerateTests(rootdir='tests/driver', pattern='*.c')
   class driver(unittest.TestCase): pass
+
+  if runner_args.test_libc:
+      @GenerateTests(rootdir='tests/stdlib/c', pattern='**.c')
+      class libc(unittest.TestCase): pass
 
   if runner_args.list_tests:
     exit(PrintLoadedTests())
