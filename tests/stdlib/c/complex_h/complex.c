@@ -10,7 +10,7 @@
 #include "tests/stdlib/c/complex_h/complex-d1.h"
 
 // IWYU: complex is defined in...*complex.h
-complex cmplx;
+double complex cmplx;
 
 /**** IWYU_SUMMARY
 

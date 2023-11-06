@@ -10,7 +10,7 @@
 #include "tests/stdlib/c/complex_h/imaginary-d1.h"
 
 // IWYU: imaginary is defined in...*complex.h
-imaginary imag;
+double imaginary imag;
 
 /**** IWYU_SUMMARY
 
