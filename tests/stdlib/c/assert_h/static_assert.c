@@ -10,7 +10,7 @@
 #include "tests/stdlib/c/assert_h/static_assert-d1.h"
 
 // IWYU: static_assert is defined in...*assert.h
-static_assert(0);
+static_assert(1, "never fail");
 
 /**** IWYU_SUMMARY
 

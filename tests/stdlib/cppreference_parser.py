@@ -64,8 +64,8 @@ class SimpleMacro(Symbol):
             'bool': 'bool v1;',
             'complex': 'complex cmplx;',
             'imaginary': 'imaginary imag;',
-            'noreturn': 'noreturn void foo(){}',
-            'static_assert': 'static_assert(0);',
+            'noreturn': 'noreturn void foo(){ while(1); }',
+            'static_assert': 'static_assert(1, "never fail");',
             'thread_local': 'thread_local char tlc;',
         }
         assert(self.name in keyword_test)

@@ -10,7 +10,7 @@
 #include "tests/stdlib/c/stdnoreturn_h/noreturn-d1.h"
 
 // IWYU: noreturn is defined in...*stdnoreturn.h
-noreturn void foo(){}
+noreturn void foo(){ while(1); }
 
 /**** IWYU_SUMMARY
 
